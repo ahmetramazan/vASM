@@ -26,12 +26,11 @@ communication in order to compute their membership keys jointly.
 """
 
 #Key Generation
-def KeyGeneration(n,skList = [],pkList = []):
+def KeyGeneration(n, skList = [], pkList = []):
 	for i in range(n):
 		skList.append(randint(1,q-1))
-
 	for i in range(n):
-		pkList.append(skList[i]*g2)
+		pkList.append(scalar_mult_jacobian(skList[i], g2, default_ec_twist, Fq2)) 
 	print ('Key Generation is completed.')
 
 #Group Setup 
@@ -41,7 +40,7 @@ def GroupSetup(skLis, pkLis, mKe = [], ComLis=[]):
 	for i in range(len(skLis)):
 		coeff.append(skLis[i])
 		for j in range(len(skLis)-1):
-			coeff.append(randint(1,q-1))
+			coeff.append(randint(1,q))
 
 	#evaluations of the secret polynomials
 	lisEval = []
@@ -62,7 +61,7 @@ def GroupSetup(skLis, pkLis, mKe = [], ComLis=[]):
 	#Individual commitments of the users' secret polynomials
 	lisCom = []
 	for i in range (len(coeff)):
-		lisCom.append(coeff[i]*g2)
+		lisCom.append(scalar_mult_jacobian(coeff[i], g2, default_ec_twist, Fq2))
 
 	#aggregating individual commitments
 	for i in range (len(mKe)):
@@ -74,14 +73,14 @@ def GroupSetup(skLis, pkLis, mKe = [], ComLis=[]):
 	#consitency check
 	chck1= []
 	for i in range (len(mKe)):
-		tre = mKe[i]*g2
+		tre = scalar_mult_jacobian(mKe[i], g2, default_ec_twist, Fq2)
 		chck1.append(tre)
 
 	df = G2Infinity()
 	chck2=[]
 	for i in range (len(mKe)):
 		for j in range(len(mKe)):
-			df = df + ((i+1)**j)*ComLis[j]
+			df = df + scalar_mult_jacobian(((i+1)**j), ComLis[j], default_ec_twist, Fq2)
 		chck2.append(df)
 
 	if ComLis[0] == sum(pkLis):
@@ -100,7 +99,7 @@ def SignatureGeneration(SubGr,message,mklist):
 	#individual signatures of each user in subgroup S
 	signInd=[]
 	for i in SubGr:
-		signInd.append(mklist[i-1]*msgp)
+		signInd.append(scalar_mult_jacobian(mklist[i-1], msgp, default_ec, Fq))
 
 	#return aggrerated signature as a point in G1
 	return sum(signInd)
@@ -113,9 +112,9 @@ def Verify(mesgs,AggS,Sub,ComL):
 	summed = G2Infinity()
 	for i in Sub:
 		for j in range(len(ComL)):
-			summed = summed + ((i)**j)*ComL[j]
+			summed = summed + scalar_mult_jacobian(((i)**j), ComL[j], default_ec_twist, Fq2)
 
-	#ate pairing: e(p2,p1,EC) as elements in Fq12 
+	#ate pairing: e(p1,p2,EC) as elements in Fq12 
 	v1 = ate_pairing(message, summed, default_ec)
 	v2 = ate_pairing(AggS, g2, default_ec)
 
